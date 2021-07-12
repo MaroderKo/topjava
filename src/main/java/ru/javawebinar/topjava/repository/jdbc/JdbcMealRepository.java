@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.repository.MealRepository;
 import ru.javawebinar.topjava.util.Util;
+import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,12 +46,15 @@ public class JdbcMealRepository implements MealRepository {
                 .addValue("description", meal.getDescription())
                 .addValue("calories", meal.getCalories())
                 .addValue("userId", userId);
-
+        if (!getBetweenHalfOpen(meal.getDateTime(),meal.getDateTime().plusMinutes(1),userId).isEmpty())
+        {
+            throw new NotFoundException("Еда с такой датой уже существует!");
+        }
         if (meal.isNew()) {
             Number newKey = insertMeal.executeAndReturnKey(map);
             meal.setId(newKey.intValue());
         } else if (namedParameterJdbcTemplate.update(
-                "UPDATE meals SET id=:id, date_time=:dateTime, description=:description, " +
+                "UPDATE meals SET id=:id, date_time=:dateTime, " +
                         "description=:description, calories=:calories, userid=:userId WHERE id=:id", map) == 0) {
             return null;
         }
